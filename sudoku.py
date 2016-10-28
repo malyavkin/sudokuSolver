@@ -1,30 +1,40 @@
-import copy
+import logging
+import htmltable
+from copy import deepcopy
 import sample
-
-
-def print_puzzle(puzzle):
-    print(str_puzzle(puzzle))
+logging.basicConfig(level=logging.INFO,
+                    format='%(message)s')
 
 
 def str_puzzle(puzzle):
-    delim = "|"
-    strs = []
-    fmt = "{} || {} || {}"
+
+    cell_horizontal_delim = "|"
+    cell_vertical_delim = "-"
+    region_horizontal_delim = " || "
+    region_vertical_delim = "="
+
+    strs = ["Graphical representation:"]
+    fmt = region_horizontal_delim.join(["{}"]*3)
     for i in range(len(puzzle)):
         row = [x if x != "X" else " " for x in puzzle[i]]
-        subrow_fmt = delim.join(["{:^5}"] * 3)
+        subrow_fmt = cell_horizontal_delim.join(["{:^5}"] * 3)
         strs.append(fmt.format(subrow_fmt.format(*row[0:3]),
                                subrow_fmt.format(*row[3:6]),
                                subrow_fmt.format(*row[6:9])))
-        if i % 3 == 2 and i != len(puzzle)-1:
-            pass
-            sub = "=" * 17
-            strs.append(fmt.format(sub, sub, sub))
-        else:
-            sub = " ".join(["-"*5]*3)
-            strs.append(fmt.format(sub, sub, sub))
+        if i != len(puzzle)-1:
+            if i % 3 == 2:
+                pass
+                sub = region_vertical_delim * 17
+                strs.append(fmt.format(sub, sub, sub))
+            else:
+                sub = " ".join([cell_vertical_delim*5]*3)
+                strs.append(fmt.format(sub, sub, sub))
     return "\n".join(strs)
 
+
+class ZeroCandidatesException(Exception):
+    def __init__(self, cell):
+        self.cell = cell
 
 class SudokuPuzzle:
     def __init__(self, puzzle, acceptable_values):
@@ -98,33 +108,49 @@ class SudokuPuzzle:
 
     def __deepcopy__(self, memodict={}):
         sp = SudokuPuzzle(
-            copy.deepcopy(self.puzzle),
-            copy.deepcopy(self.acceptable_values)
+            deepcopy(self.puzzle),
+            deepcopy(self.acceptable_values)
         )
-        sp.guesses = copy.deepcopy(self.guesses)
+        sp.guesses = deepcopy(self.guesses)
         return sp
 
     def __eq__(self, other):
         return self.puzzle == other.puzzle
 
-    def solve(self):
-        c_puzzle = copy.deepcopy(self)
+    def is_finished(self):
+        return len(list(self.get_empty_cells())) == 0
+
+    def solve(self, silent=False, enable_desperate=True):
+        c_puzzle = deepcopy(self)
         rounds = 0
         while True:
+            if c_puzzle.is_finished():
+                return c_puzzle
             rounds += 1
-            print("{}\n\nround #{}".format("="*80,  rounds))
-            new_puzzle = copy.deepcopy(c_puzzle)
-            print("Running strategy: find_single_missing")
-            find_single_missing(new_puzzle)
-            print("Running strategy: find_exclude_in_regions")
-            find_exclude_in_regions(new_puzzle)
-            print("Running strategy: find_exclude_in_columns")
-            find_exclude_in_columns(new_puzzle)
-            print("Running strategy: find_exclude_in_rows")
-            find_exclude_in_rows(new_puzzle)
-            # print(new_puzzle)
+            if not silent:
+                logging.info("{}\n\nround #{}".format("="*80,  rounds))
+            new_puzzle = deepcopy(c_puzzle)
+            if not silent:
+                logging.info("Running strategy: find_single_missing")
+            find_single_missing(new_puzzle, silent)
+            if not silent:
+                logging.info("Running strategy: find_exclude_in_regions")
+            find_exclude_in_regions(new_puzzle, silent)
+            if not silent:
+                logging.info("Running strategy: find_exclude_in_columns")
+            find_exclude_in_columns(new_puzzle, silent)
+            if not silent:
+                logging.info("Running strategy: find_exclude_in_rows")
+            find_exclude_in_rows(new_puzzle, silent)
             if c_puzzle == new_puzzle:
-                return new_puzzle
+                if enable_desperate:
+                    if not silent:
+                        logging.info("[despair mode]: Running strategy: nishio")
+                    new_puzzle = nishio(new_puzzle, silent)
+                    if c_puzzle == new_puzzle:
+                        return new_puzzle
+                else:
+                    return new_puzzle
             c_puzzle = new_puzzle
 
 
@@ -180,28 +206,36 @@ def get_possibles_for_cell(sudoku, i, j):
 ########################################################################################################################
 
 
-def find_single_missing(sudoku):
+def find_single_missing(sudoku, silent=False):
     """
     Finds all cells with only one variant
     """
     length = 5
+    candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
-    for i, j in sudoku.get_empty_cells():
+    for cell in sudoku.get_empty_cells():
+        i, j = cell
         acceptable_here = get_possibles_for_cell(sudoku, i, j)
         if not acceptable_here:
-            raise Exception("Zero variants for empty cell")
+            raise ZeroCandidatesException(cell)
         elif len(acceptable_here) == 1:
             (value, *rest) = acceptable_here
             candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+            candidates_changed = True
             sudoku.puzzle[i][j] = value
         elif len(acceptable_here) == 2:
             # pass
             l_acc = list(acceptable_here)
             candidates[i][j] = "{:^{}}".format("[{},{}]".format(*l_acc), length)
-    print_puzzle(candidates)
+            candidates_changed = True
+    if not silent:
+        if candidates_changed:
+            logging.info(str_puzzle(candidates))
+        else:
+            logging.info("<no changes>")
 
 
-def exclude_cells_with_same_possible_values(sudoku, cells, missing_values):
+def exclude_cells_with_same_possible_values(sudoku, cells, missing_values, silent=False):
     possible_values_cells = {}
     original_sets = {}
     cells = list(cells)
@@ -214,7 +248,8 @@ def exclude_cells_with_same_possible_values(sudoku, cells, missing_values):
             original_sets[pv_hash] = possible_values
         possible_values_cells[pv_hash].append(cell)
 
-    print(possible_values_cells)
+    if not silent:
+        logging.debug(possible_values_cells)
 
     for k, v in possible_values_cells.items():
         if len(original_sets[k]) == len(possible_values_cells[k]):
@@ -224,10 +259,12 @@ def exclude_cells_with_same_possible_values(sudoku, cells, missing_values):
             # remove cells from empty cells
             cells = [cell for cell in cells if cell not in v]
 
-    print("after stripping guesses: missing {} in cells {}".format(missing_values, cells))
+    if not silent:
+        logging.debug("after stripping guesses: missing {} in cells {}".format(missing_values, cells))
     return cells, missing_values
 
-def find_exclude_in_columns(sudoku):
+
+def find_exclude_in_columns(sudoku, silent=False):
     """
     in each column, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
@@ -236,18 +273,22 @@ def find_exclude_in_columns(sudoku):
     """
     n_columns = 9
     length = 5
+    candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for j_column in range(n_columns):
-        print("column {}".format(j_column))
+        if not silent:
+            logging.debug("column {}".format(j_column))
         column_content = sudoku.get_column(j_column)
         missing_from_column = get_missing(set(column_content), sudoku.acceptable_values)
-        print("\tmissing: ", missing_from_column)
+        if not silent:
+            logging.debug("\tmissing: {}".format(missing_from_column))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_column(j_column)
         empty_cells, missing_from_column = \
             exclude_cells_with_same_possible_values(sudoku,
                                                     empty_cells,
-                                                    missing_from_column)
+                                                    missing_from_column,
+                                                    silent=silent)
         for missing_digit in missing_from_column:
             possible_cells = []
 
@@ -261,7 +302,9 @@ def find_exclude_in_columns(sudoku):
                 sudoku.puzzle[i][j] = missing_digit
                 empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
                 candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
-            print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+                candidates_changed = True
+            if not silent:
+                logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
         for cell in empty_cells:
             i, j = cell
             possible_values = missing_from_column & get_possibles_for_cell(sudoku, i, j)
@@ -271,10 +314,15 @@ def find_exclude_in_columns(sudoku):
                 sudoku.puzzle[i][j] = value
                 empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
                 candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
-    print_puzzle(candidates)
+                candidates_changed = True
+    if not silent:
+        if candidates_changed:
+            logging.info(str_puzzle(candidates))
+        else:
+            logging.info("<no changes>")
 
 
-def find_exclude_in_rows(sudoku):
+def find_exclude_in_rows(sudoku, silent=False):
     """
     in each row, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
@@ -284,18 +332,22 @@ def find_exclude_in_rows(sudoku):
     """
     n_rows = 9
     length = 5
+    candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for i_row in range(n_rows):
-        print("row {}".format(i_row))
+        if not silent:
+            logging.debug("row {}".format(i_row))
         row_content = sudoku.get_row(i_row)
         missing_from_row = get_missing(set(row_content), sudoku.acceptable_values)
-        print("\tmissing: ", missing_from_row)
+        if not silent:
+            logging.debug("\tmissing: {}".format(missing_from_row))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_row(i_row)
         empty_cells, missing_from_row = \
             exclude_cells_with_same_possible_values(sudoku,
                                                     empty_cells,
-                                                    missing_from_row)
+                                                    missing_from_row,
+                                                    silent=silent)
         for missing_digit in missing_from_row:
             possible_cells = []
 
@@ -309,7 +361,9 @@ def find_exclude_in_rows(sudoku):
                 sudoku.puzzle[i][j] = missing_digit
                 empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
                 candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
-            print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+                candidates_changed = True
+            if not silent:
+                logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
         for cell in empty_cells:
             i, j = cell
             possible_values = missing_from_row & get_possibles_for_cell(sudoku, i, j)
@@ -319,10 +373,15 @@ def find_exclude_in_rows(sudoku):
                 sudoku.puzzle[i][j] = value
                 empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
                 candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
-    print_puzzle(candidates)
+                candidates_changed = True
+    if not silent:
+        if candidates_changed:
+            logging.info(str_puzzle(candidates))
+        else:
+            logging.info("<no changes>")
 
 
-def find_exclude_in_regions(sudoku):
+def find_exclude_in_regions(sudoku, silent=False):
     """
     in each region, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
@@ -332,19 +391,23 @@ def find_exclude_in_regions(sudoku):
     """
     n_regions = 3
     length = 5
+    candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
-            print("region {} {}".format(region_i, region_j))
+            if not silent:
+                logging.debug("region {} {}".format(region_i, region_j))
             region_content = sudoku.get_region(region_i, region_j)
             missing_from_region = get_missing(set(region_content), sudoku.acceptable_values)
-            print("\tmissing: ", missing_from_region)
+            if not silent:
+                logging.debug("\tmissing: {}".format(missing_from_region))
             # find N cells with N variants where variants are equal between cells
             empty_cells = sudoku.get_empty_cells_in_region_by_region_ij(region_i, region_j)
             empty_cells, missing_from_region = \
                 exclude_cells_with_same_possible_values(sudoku,
                                                         empty_cells,
-                                                        missing_from_region)
+                                                        missing_from_region,
+                                                        silent=silent)
 
             for missing_digit in missing_from_region:
                 possible_cells = []
@@ -359,7 +422,9 @@ def find_exclude_in_regions(sudoku):
                     sudoku.puzzle[i][j] = missing_digit
                     empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
                     candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
-                print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+                    candidates_changed = True
+                if not silent:
+                    logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
             for cell in empty_cells:
                 i, j = cell
                 possible_values = missing_from_region & get_possibles_for_cell(sudoku, i, j)
@@ -369,19 +434,61 @@ def find_exclude_in_regions(sudoku):
                     sudoku.puzzle[i][j] = value
                     empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
                     candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+                    candidates_changed = True
 
                 # todo: так же иметь массив догадок -- где записаны пары мест, где могут стоять только 2 цифры :
                 #   6 | [4, 3] |
                 #     |        |
                 #     | [4, 3] | 2
                 # в таком случае в данном регионе остается только 5 мест, занятых цифрами 1, 5, 7, 8, 9
-    print_puzzle(candidates)
+    if not silent:
+        if candidates_changed:
+            logging.info(str_puzzle(candidates))
+        else:
+            logging.info("<no changes>")
 
+
+def nishio(sudoku, silent=False):
+    for cell in sudoku.get_empty_cells():
+        i, j = cell
+        acceptable_here = get_possibles_for_cell(sudoku, i, j)
+        if not acceptable_here:
+            raise ZeroCandidatesException(cell)
+
+        if not silent:
+            logging.info("[!] Running hypothesis for cell {} (candidates {}).".format(cell, acceptable_here))
+        possible_solutions = []
+        for guess in acceptable_here:
+            if not silent:
+                logging.info("[*] Suppose cell {} is {}. Trying to solve or fail.".format(cell, guess))
+            new_puzzle = deepcopy(sudoku.puzzle)
+            new_puzzle[i][j] = guess
+            guess_sudoku = SudokuPuzzle(new_puzzle, sudoku.acceptable_values)
+
+            try:
+                solved = guess_sudoku.solve(silent=True, enable_desperate=False)
+                if solved.is_finished():
+                    if not silent:
+                        logging.info("[+] Hypothesis found solution, returning.")
+                    return solved
+                else:
+                    possible_solutions.append(solved)
+                    if not silent:
+                        logging.info("[~] Hypothesis found PARTIAL solution, adding.")
+            except ZeroCandidatesException as x:
+                if not silent:
+                    logging.info("[x] Hypothesis found contradiction, continuing.")
+        if len(possible_solutions) == 1:
+            return possible_solutions[0]
 
 
 if __name__ == "__main__":
     hard = SudokuPuzzle(sample.hard["puzzle"], sample.acceptable_values)
-    print("Puzzle:\n{}".format(hard))
+    htmltable.table(hard.puzzle)
+    logging.warning("Puzzle:\n{}".format(hard))
     solved = hard.solve()
-    print("="*80, "\nSolved:\n{}".format(solved))
+    logging.warning("="*80)
+    logging.warning("\n\n\n\nSolved:\n{}".format(solved))
+
+
 
