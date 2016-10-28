@@ -53,11 +53,11 @@ class MyTestCase(unittest.TestCase):
 class StrategyTestCase(unittest.TestCase):
     def test_locked_candidates(self):
         puzzle = [
-              ["8", "X", "9",    "1", "2", "7",    "X", "X", "X"],
+              ["8", "X", "9",    "1", "2", "X",    "X", "X", "X"],
               ["X", "X", "X",    "3", "4", "X",    "X", "5", "X"],
-              ["X", "X", "X",    "X", "X", "6",    "X", "X", "X"],
-
               ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+
+              ["X", "X", "X",    "X", "X", "5",    "X", "X", "X"],
               ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
               ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
 
@@ -68,6 +68,78 @@ class StrategyTestCase(unittest.TestCase):
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
         solved = su.solve()
         self.assertEqual(solved.puzzle[0][1], "5")
+
+    def test_sole_candidate(self):
+        puzzle = [
+            ["X", "X", "X", "X", "X", "1", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "6", "X", "X", "X"],
+
+            ["X", "X", "X", "4", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "8", "X", "X", "X", "X"],
+            ["2", "X", "9", "X", "X", "X", "X", "X", "7"],
+
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "3", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+        ]
+        su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
+        solved = su.solve()
+        self.assertEqual(solved.puzzle[5][5], "5")
+
+    def test_unique_candidate(self):
+        puzzle = [
+            ["X", "X", "4", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+
+            ["X", "4", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+
+            ["5", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "4", "X", "X", "X"],
+        ]
+        su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
+        solved = su.solve()
+        self.assertEqual(solved.puzzle[7][0], "4")
+
+    def test_block_row_interaction(self):
+        puzzle = [
+            ["5", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "5", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "5"],
+
+            ["X", "X", "X", "1", "X", "2", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "3", "X", "4", "X", "5", "X"],
+
+            ["X", "X", "X", "X", "X", "X", "5", "X", "X"],
+            ["X", "X", "X", "X", "X", "5", "X", "X", "X"],
+            ["X", "X", "5", "X", "X", "X", "X", "X", "X"],
+        ]
+        su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
+        solved = su.solve()
+        self.assertEqual(solved.puzzle[4][3], "5")
+
+    def test_block_block_interaction(self):
+        puzzle = [
+            ["X", "X", "X", "X", "X", "X", "8", "X", "X"],
+            ["X", "X", "8", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "8", "X", "X", "X", "X", "X"],
+
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["1", "2", "X", "X", "3", "4", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+
+            ["X", "X", "X", "X", "X", "X", "X", "X", "8"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
+        ]
+        su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
+        solved = su.solve()
+        self.assertEqual(solved.puzzle[4][7], "8")
 
 
 if __name__ == '__main__':

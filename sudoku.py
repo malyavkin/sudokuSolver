@@ -3,12 +3,27 @@ import sample
 
 
 def print_puzzle(puzzle):
+    print(str_puzzle(puzzle))
+
+
+def str_puzzle(puzzle):
     delim = "|"
+    strs = []
+    fmt = "{} || {} || {}"
     for i in range(len(puzzle)):
-        row = puzzle[i]
-        print("{}   {}   {}".format(delim.join(row[0:3]), delim.join(row[3:6]), delim.join(row[6:9])))
-        if i % 3 == 2:
-            print()
+        row = [x if x != "X" else " " for x in puzzle[i]]
+        subrow_fmt = delim.join(["{:^5}"] * 3)
+        strs.append(fmt.format(subrow_fmt.format(*row[0:3]),
+                               subrow_fmt.format(*row[3:6]),
+                               subrow_fmt.format(*row[6:9])))
+        if i % 3 == 2 and i != len(puzzle)-1:
+            pass
+            sub = "=" * 17
+            strs.append(fmt.format(sub, sub, sub))
+        else:
+            sub = " ".join(["-"*5]*3)
+            strs.append(fmt.format(sub, sub, sub))
+    return "\n".join(strs)
 
 
 class SudokuPuzzle:
@@ -76,17 +91,7 @@ class SudokuPuzzle:
         return filter(coords, ijs)
 
     def __str__(self):
-        delim = "|"
-        strs = []
-        for i in range(len(self.puzzle)):
-            row = [x if x !="X" else " " for x in self.puzzle[i]]
-            subrow_fmt = "|".join(["{:^5}"]*3)
-            strs.append("{}   {}   {}".format(subrow_fmt.format(*row[0:3]),
-                                              subrow_fmt.format(*row[3:6]),
-                                              subrow_fmt.format(*row[6:9])))
-            if i % 3 == 2:
-                strs.append("\n")
-        return "\n".join(strs)
+        return str_puzzle(self.puzzle)
 
     def __copy__(self):
         return self.__deepcopy__()
@@ -109,9 +114,13 @@ class SudokuPuzzle:
             rounds += 1
             print("{}\n\nround #{}".format("="*80,  rounds))
             new_puzzle = copy.deepcopy(c_puzzle)
+            print("Running strategy: find_single_missing")
             find_single_missing(new_puzzle)
+            print("Running strategy: find_exclude_in_regions")
             find_exclude_in_regions(new_puzzle)
+            print("Running strategy: find_exclude_in_columns")
             find_exclude_in_columns(new_puzzle)
+            print("Running strategy: find_exclude_in_rows")
             find_exclude_in_rows(new_puzzle)
             # print(new_puzzle)
             if c_puzzle == new_puzzle:
