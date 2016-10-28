@@ -79,8 +79,11 @@ class SudokuPuzzle:
         delim = "|"
         strs = []
         for i in range(len(self.puzzle)):
-            row = self.puzzle[i]
-            strs.append("{}   {}   {}".format(delim.join(row[0:3]), delim.join(row[3:6]), delim.join(row[6:9])))
+            row = [x if x !="X" else " " for x in self.puzzle[i]]
+            subrow_fmt = "|".join(["{:^5}"]*3)
+            strs.append("{}   {}   {}".format(subrow_fmt.format(*row[0:3]),
+                                              subrow_fmt.format(*row[3:6]),
+                                              subrow_fmt.format(*row[6:9])))
             if i % 3 == 2:
                 strs.append("\n")
         return "\n".join(strs)
@@ -109,7 +112,7 @@ class SudokuPuzzle:
             find_single_missing(new_puzzle)
             find_exclude_in_regions(new_puzzle)
             find_exclude_in_columns(new_puzzle)
-            #find_exclude_in_rows(new_puzzle)
+            find_exclude_in_rows(new_puzzle)
             # print(new_puzzle)
             if c_puzzle == new_puzzle:
                 return new_puzzle
@@ -183,15 +186,22 @@ def find_single_missing(sudoku):
             candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
             sudoku.puzzle[i][j] = value
         elif len(acceptable_here) == 2:
-            pass
-            # l_acc = list(acceptable_here)
-            # candidates[i][j] = "{:^{}}".format("[{},{}]".format(*l_acc), length)
+            # pass
+            l_acc = list(acceptable_here)
+            candidates[i][j] = "{:^{}}".format("[{},{}]".format(*l_acc), length)
     print_puzzle(candidates)
-    return sudoku
 
 
 def find_exclude_in_columns(sudoku):
+    """
+    in each column, for each missing digits, find cells where that digit can be. If there's only one
+    possible cell -- fill it
+    :param sudoku:
+    :return:
+    """
     n_columns = 9
+    length = 5
+    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for j_column in range(n_columns):
         print("column {}".format(j_column))
         column_content = sudoku.get_column(j_column)
@@ -208,10 +218,22 @@ def find_exclude_in_columns(sudoku):
                 i, j = possible_cells[0]
                 # цифра может быть только в 1 месте
                 sudoku.puzzle[i][j] = missing_digit
+                candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
+            print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+    print_puzzle(candidates)
 
 
 def find_exclude_in_rows(sudoku):
+    """
+    in each row, for each missing digits, find cells where that digit can be. If there's only one
+    possible cell -- fill it
+
+    :param sudoku:
+    :return:
+    """
     n_rows = 9
+    length = 5
+    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for i_row in range(n_rows):
         print("row {}".format(i_row))
         row_content = sudoku.get_row(i_row)
@@ -228,13 +250,22 @@ def find_exclude_in_rows(sudoku):
                 i, j = possible_cells[0]
                 # цифра может быть только в 1 месте
                 sudoku.puzzle[i][j] = missing_digit
+                candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
+            print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+    print_puzzle(candidates)
 
 
 def find_exclude_in_regions(sudoku):
     """
-    Finds only cell in the region that can contain given number
+    in each region, for each missing digits, find cells where that digit can be. If there's only one
+    possible cell -- fill it
+
+    :param sudoku:
+    :return:
     """
     n_regions = 3
+    length = 5
+    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
             print("region {} {}".format(region_i, region_j))
@@ -253,8 +284,7 @@ def find_exclude_in_regions(sudoku):
                     i, j = possible_cells[0]
                     # цифра может быть только в 1 месте
                     sudoku.puzzle[i][j] = missing_digit
-
-
+                    candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
                 print("\t[{}] can be in: {}".format(missing_digit, possible_cells))
 
                 # проверяем, гдcе может стоять эта цифра
@@ -267,6 +297,7 @@ def find_exclude_in_regions(sudoku):
                 #     |        |
                 #     | [4, 3] | 2
                 # в таком случае в данном регионе остается только 5 мест, занятых цифрами 1, 5, 7, 8, 9
+    print_puzzle(candidates)
 
 
 
@@ -274,5 +305,5 @@ if __name__ == "__main__":
     hard = SudokuPuzzle(sample.hard["puzzle"], sample.acceptable_values)
     print("Puzzle:\n{}".format(hard))
     solved = hard.solve()
-    print("Solved:\n{}".format(solved))
+    print("="*80, "\nSolved:\n{}".format(solved))
 
