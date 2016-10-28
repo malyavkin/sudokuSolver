@@ -8,9 +8,9 @@ logging.basicConfig(level=logging.INFO,
 
 def str_puzzle(puzzle):
 
-    cell_horizontal_delim = ":"
+    cell_horizontal_delim = " "
     cell_intersection_delim = "·"
-    cell_vertical_delim = "·"
+    cell_vertical_delim = " "
     region_horizontal_delim = " | "
     region_vertical_delim = "-"
 
@@ -42,12 +42,10 @@ class SudokuPuzzle:
     def __init__(self, puzzle, acceptable_values):
         self.puzzle = puzzle
         self.acceptable_values = acceptable_values
-        self.guesses = [[[]  for j in range(9)] for i in range(9)]
 
     def get_row(self, row):
         """
         Returns contents of the row with current cell
-        :param puzzle: sudoku, list of lists
         :param row: row number, 0-based
         :return: list of row contents
         """
@@ -56,7 +54,6 @@ class SudokuPuzzle:
     def get_column(self, column):
         """
         Returns contents of the column with current cell
-        :param puzzle: sudoku, list of lists
         :param column: column number, 0-based
         :return: list of column contents
         """
@@ -89,18 +86,16 @@ class SudokuPuzzle:
 
     def get_empty_cells_in_row(self, row_i):
         ijs = self.get_empty_cells()
-        coords = lambda ij: ij[0] == row_i
-        return filter(coords, ijs)
+        return filter(lambda ij: ij[0] == row_i, ijs)
 
     def get_empty_cells_in_column(self, column_j):
         ijs = self.get_empty_cells()
-        coords = lambda ij: ij[1] == column_j
-        return filter(coords, ijs)
+        return filter(lambda ij: ij[1] == column_j, ijs)
 
     def get_empty_cells_in_region(self, i_min, j_min, i_max, j_max):
         ijs = self.get_empty_cells()
-        coords = lambda ij: i_min <= ij[0] < i_max and j_min <= ij[1] < j_max
-        return filter(coords, ijs)
+        return filter(lambda ij: i_min <= ij[0] < i_max and j_min <= ij[1] < j_max,
+                      ijs)
 
     def __str__(self):
         return str_puzzle(self.puzzle)
@@ -109,12 +104,10 @@ class SudokuPuzzle:
         return self.__deepcopy__()
 
     def __deepcopy__(self, memodict={}):
-        sp = SudokuPuzzle(
+        return SudokuPuzzle(
             deepcopy(self.puzzle),
             deepcopy(self.acceptable_values)
         )
-        sp.guesses = deepcopy(self.guesses)
-        return sp
 
     def __eq__(self, other):
         return self.puzzle == other.puzzle
@@ -188,13 +181,10 @@ def get_missing(lst: set, acceptable_values: set) -> set:
     return acceptable_values.difference(lst)
 
 
-def generate_empty_scratch():
-    return [[None for j in range(9)] for i in range(9)]
-
-
 def generate_scratch(puzzle, length, acceptable_values):
     return [["{:^{}}".format(puzzle[i][j], length) if puzzle[i][j] in acceptable_values else "     "
              for j in range(9)] for i in range(9)]
+
 
 def get_possibles_for_cell(sudoku, i, j):
     missing_row = get_missing(set(sudoku.get_row(i)), sudoku.acceptable_values)
@@ -270,7 +260,8 @@ def find_exclude_in_columns(sudoku, silent=False):
     """
     in each column, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
-    :param sudoku:
+    :param sudoku: puzzle
+    :param silent: don't log any messages
     :return:
     """
     n_columns = 9
@@ -328,7 +319,7 @@ def find_exclude_in_rows(sudoku, silent=False):
     """
     in each row, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
-
+    :param silent: don't log any messages
     :param sudoku:
     :return:
     """
@@ -387,7 +378,7 @@ def find_exclude_in_regions(sudoku, silent=False):
     """
     in each region, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
-
+    :param silent: don't log any messages
     :param sudoku:
     :return:
     """
@@ -468,18 +459,18 @@ def nishio(sudoku, silent=False):
             guess_sudoku = SudokuPuzzle(new_puzzle, sudoku.acceptable_values)
 
             try:
-                solved = guess_sudoku.solve(silent=True, enable_desperate=False)
-                if solved.is_finished():
+                hypothesis_result = guess_sudoku.solve(silent=True, enable_desperate=False)
+                if hypothesis_result.is_finished():
                     if not silent:
                         logging.info("[+] Hypothesis found solution, returning.")
-                    return solved
+                    return hypothesis_result
                 else:
-                    possible_solutions.append(solved)
+                    possible_solutions.append(hypothesis_result)
                     if not silent:
                         logging.info("[~] Hypothesis found PARTIAL solution, adding.")
             except ZeroCandidatesException as x:
                 if not silent:
-                    logging.info("[x] Hypothesis found contradiction, continuing.")
+                    logging.info("[x] Hypothesis found contradiction at cell {}, continuing.".format(x.cell))
         if len(possible_solutions) == 1:
             return possible_solutions[0]
 

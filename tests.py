@@ -17,9 +17,9 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(row0, list("XXXX6824X"))
 
     def test_section(self):
-        self.assertEqual(sudoku.get_section(0), (0,3))
-        self.assertEqual(sudoku.get_section(1), (0,3))
-        self.assertEqual(sudoku.get_section(2), (0,3))
+        self.assertEqual(sudoku.get_section(0), (0, 3))
+        self.assertEqual(sudoku.get_section(1), (0, 3))
+        self.assertEqual(sudoku.get_section(2), (0, 3))
 
         self.assertEqual(sudoku.get_section(3), (3, 6))
         self.assertEqual(sudoku.get_section(4), (3, 6))
