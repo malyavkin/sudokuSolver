@@ -50,5 +50,25 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(em), 6)
 
 
+class StrategyTestCase(unittest.TestCase):
+    def test_locked_candidates(self):
+        puzzle = [
+              ["8", "X", "9",    "1", "2", "7",    "X", "X", "X"],
+              ["X", "X", "X",    "3", "4", "X",    "X", "5", "X"],
+              ["X", "X", "X",    "X", "X", "6",    "X", "X", "X"],
+
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+              ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
+        ]
+        su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
+        solved = su.solve()
+        self.assertEqual(solved.puzzle[0][1], "5")
+
+
 if __name__ == '__main__':
     unittest.main()
