@@ -8,10 +8,11 @@ logging.basicConfig(level=logging.INFO,
 
 def str_puzzle(puzzle):
 
-    cell_horizontal_delim = "|"
-    cell_vertical_delim = "-"
-    region_horizontal_delim = " || "
-    region_vertical_delim = "="
+    cell_horizontal_delim = ":"
+    cell_intersection_delim = "·"
+    cell_vertical_delim = "·"
+    region_horizontal_delim = " | "
+    region_vertical_delim = "-"
 
     strs = ["Graphical representation:"]
     fmt = region_horizontal_delim.join(["{}"]*3)
@@ -27,7 +28,7 @@ def str_puzzle(puzzle):
                 sub = region_vertical_delim * 17
                 strs.append(fmt.format(sub, sub, sub))
             else:
-                sub = " ".join([cell_vertical_delim*5]*3)
+                sub = cell_intersection_delim.join([cell_vertical_delim*5]*3)
                 strs.append(fmt.format(sub, sub, sub))
     return "\n".join(strs)
 
@@ -35,6 +36,7 @@ def str_puzzle(puzzle):
 class ZeroCandidatesException(Exception):
     def __init__(self, cell):
         self.cell = cell
+
 
 class SudokuPuzzle:
     def __init__(self, puzzle, acceptable_values):
@@ -484,11 +486,8 @@ def nishio(sudoku, silent=False):
 
 if __name__ == "__main__":
     hard = SudokuPuzzle(sample.hard["puzzle"], sample.acceptable_values)
-    htmltable.table(hard.puzzle)
     logging.warning("Puzzle:\n{}".format(hard))
     solved = hard.solve()
     logging.warning("="*80)
     logging.warning("\n\n\n\nSolved:\n{}".format(solved))
-
-
-
+    htmltable.table(solved.puzzle)
