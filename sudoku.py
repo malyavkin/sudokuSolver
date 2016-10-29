@@ -212,7 +212,7 @@ def find_single_missing(sudoku, silent=False):
             raise ZeroCandidatesException(cell)
         elif len(acceptable_here) == 1:
             (value, *rest) = acceptable_here
-            candidates[i][j] = "{:^{}}".format("> {} <".format(value), length)
+            candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
             candidates_changed = True
             sudoku.puzzle[i][j] = value
         elif len(acceptable_here) == 2:
@@ -241,10 +241,10 @@ def exclude_cells_with_same_possible_values(sudoku, cells, missing_values, silen
         possible_values_cells[pv_hash].append(cell)
 
     if not silent:
-        logging.debug(possible_values_cells)
+        logging.debug("possible cells for values: {}".format(possible_values_cells))
 
     for k, v in possible_values_cells.items():
-        if len(original_sets[k]) == len(possible_values_cells[k]):
+        if len(original_sets[k]) == len(possible_values_cells[k]) and len(original_sets[k]) != 1:
             # N equal sets of values were found in N cells
             # remove values from missing_values
             missing_values = missing_values.difference(original_sets[k])
@@ -269,16 +269,12 @@ def find_exclude_in_columns(sudoku, silent=False):
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for j_column in range(n_columns):
-        if not silent:
-            logging.debug("column {}".format(j_column))
         column_content = sudoku.get_column(j_column)
         missing_from_column = get_missing(set(column_content), sudoku.acceptable_values)
         if not missing_from_column:
-            if not silent:
-                logging.debug("<none missing>")
-                continue
-        if not silent:
-            logging.debug("missing: {}".format(missing_from_column))
+            continue
+        elif not silent:
+            logging.debug("column {}: missing: {}".format(j_column, missing_from_column))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_column(j_column)
         empty_cells, missing_from_column = \
@@ -298,7 +294,7 @@ def find_exclude_in_columns(sudoku, silent=False):
                 # цифра может быть только в 1 месте
                 sudoku.puzzle[i][j] = missing_digit
                 empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
-                candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
+                candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
                 candidates_changed = True
             if not silent:
                 logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
@@ -310,7 +306,7 @@ def find_exclude_in_columns(sudoku, silent=False):
                 value = list(possible_values)[0]
                 sudoku.puzzle[i][j] = value
                 empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
-                candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+                candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
                 candidates_changed = True
     if not silent:
         if candidates_changed:
@@ -332,16 +328,12 @@ def find_exclude_in_rows(sudoku, silent=False):
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for i_row in range(n_rows):
-        if not silent:
-            logging.debug("row {}".format(i_row))
         row_content = sudoku.get_row(i_row)
         missing_from_row = get_missing(set(row_content), sudoku.acceptable_values)
         if not missing_from_row:
-            if not silent:
-                logging.debug("<none missing>")
-                continue
-        if not silent:
-            logging.debug("missing: {}".format(missing_from_row))
+            continue
+        elif not silent:
+            logging.debug("row {}: missing: {}".format(i_row, missing_from_row))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_row(i_row)
         empty_cells, missing_from_row = \
@@ -361,7 +353,7 @@ def find_exclude_in_rows(sudoku, silent=False):
                 # цифра может быть только в 1 месте
                 sudoku.puzzle[i][j] = missing_digit
                 empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
-                candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
+                candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
                 candidates_changed = True
             if not silent:
                 logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
@@ -373,7 +365,7 @@ def find_exclude_in_rows(sudoku, silent=False):
                 value = list(possible_values)[0]
                 sudoku.puzzle[i][j] = value
                 empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
-                candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+                candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
                 candidates_changed = True
     if not silent:
         if candidates_changed:
@@ -396,16 +388,12 @@ def find_exclude_in_regions(sudoku, silent=False):
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
-            if not silent:
-                logging.debug("region {} {}".format(region_i, region_j))
             region_content = sudoku.get_region(region_i, region_j)
             missing_from_region = get_missing(set(region_content), sudoku.acceptable_values)
             if not missing_from_region:
-                if not silent:
-                    logging.debug("<none missing>")
-                    continue
-            if not silent:
-                logging.debug("missing: {}".format(missing_from_region))
+                continue
+            elif not silent:
+                logging.debug("region {} {}: missing: {}".format(region_i, region_j, missing_from_region))
             # find N cells with N variants where variants are equal between cells
             empty_cells = sudoku.get_empty_cells_in_region_by_region_ij(region_i, region_j)
             empty_cells, missing_from_region = \
@@ -426,7 +414,7 @@ def find_exclude_in_regions(sudoku, silent=False):
                     # цифра может быть только в 1 месте
                     sudoku.puzzle[i][j] = missing_digit
                     empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
-                    candidates[i][j] = "{:^{}}".format("->{}<-".format(missing_digit), length)
+                    candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
                     candidates_changed = True
                 if not silent:
                     logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
@@ -438,7 +426,7 @@ def find_exclude_in_regions(sudoku, silent=False):
                     value = list(possible_values)[0]
                     sudoku.puzzle[i][j] = value
                     empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
-                    candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+                    candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
                     candidates_changed = True
     if not silent:
         if candidates_changed:
