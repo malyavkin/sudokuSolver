@@ -258,6 +258,51 @@ def exclude_cells_with_same_possible_values(sudoku, cells, missing_values, silen
     return cells, missing_values
 
 
+def find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False):
+    length = 5
+    candidates_changed = False
+    zone_content = [sudoku.puzzle[cell[0]][cell[1]] for cell in zone_cells ]
+    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
+    missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
+    if not missing_from_zone:
+        return
+    elif not silent:
+        logging.debug("{}: missing: {}".format(zone_description, missing_from_zone))
+    # find N cells with N variants where variants are equal between cells
+    empty_cells = [cell for cell in zone_cells if sudoku.puzzle[cell[0]][cell[1]] not in sudoku.acceptable_values ]
+    empty_cells, missing_from_zone = \
+        exclude_cells_with_same_possible_values(sudoku,
+                                                empty_cells,
+                                                missing_from_zone,
+                                                silent=silent)
+    for missing_digit in missing_from_zone:
+        possible_cells = []
+
+        for cell in empty_cells:
+            i, j = cell
+            if missing_digit in get_possibles_for_cell(sudoku, i, j):
+                possible_cells.append(cell)
+        if len(possible_cells) == 1:
+            i, j = possible_cells[0]
+            # цифра может быть только в 1 месте
+            sudoku.puzzle[i][j] = missing_digit
+            empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
+            candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
+            candidates_changed = True
+        if not silent:
+            logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
+    for cell in empty_cells:
+        i, j = cell
+        possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
+        if len(possible_values) == 1:
+            # цифра может быть только в 1 месте
+            value = list(possible_values)[0]
+            sudoku.puzzle[i][j] = value
+            empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
+            candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
+            candidates_changed = True
+
+
 def find_exclude_in_columns(sudoku, silent=False):
     """
     in each column, for each missing digits, find cells where that digit can be. If there's only one
@@ -271,45 +316,9 @@ def find_exclude_in_columns(sudoku, silent=False):
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for i_zone in range(n_zones):
-        zone_content = sudoku.get_column(i_zone)
-        missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
-        if not missing_from_zone:
-            continue
-        elif not silent:
-            logging.debug("column {}: missing: {}".format(i_zone, missing_from_zone))
-        # find N cells with N variants where variants are equal between cells
-        empty_cells = sudoku.get_empty_cells_in_column(i_zone)
-        empty_cells, missing_from_zone = \
-            exclude_cells_with_same_possible_values(sudoku,
-                                                    empty_cells,
-                                                    missing_from_zone,
-                                                    silent=silent)
-        for missing_digit in missing_from_zone:
-            possible_cells = []
-
-            for cell in empty_cells:
-                i, j = cell
-                if missing_digit in get_possibles_for_cell(sudoku, i, j):
-                    possible_cells.append(cell)
-            if len(possible_cells) == 1:
-                i, j = possible_cells[0]
-                # цифра может быть только в 1 месте
-                sudoku.puzzle[i][j] = missing_digit
-                empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
-                candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
-                candidates_changed = True
-            if not silent:
-                logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
-        for cell in empty_cells:
-            i, j = cell
-            possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
-            if len(possible_values) == 1:
-                # цифра может быть только в 1 месте
-                value = list(possible_values)[0]
-                sudoku.puzzle[i][j] = value
-                empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
-                candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
-                candidates_changed = True
+        zone_description = "Column C{}".format(i_zone)
+        zone_cells = [(i, i_zone) for i in range(n_zones)]
+        find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
     if not silent:
         if candidates_changed:
             logging.info(str_puzzle(candidates))
@@ -330,45 +339,9 @@ def find_exclude_in_rows(sudoku, silent=False):
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for i_zone in range(n_zones):
-        zone_content = sudoku.get_row(i_zone)
-        missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
-        if not missing_from_zone:
-            continue
-        elif not silent:
-            logging.debug("row {}: missing: {}".format(i_zone, missing_from_zone))
-        # find N cells with N variants where variants are equal between cells
-        empty_cells = sudoku.get_empty_cells_in_row(i_zone)
-        empty_cells, missing_from_zone = \
-            exclude_cells_with_same_possible_values(sudoku,
-                                                    empty_cells,
-                                                    missing_from_zone,
-                                                    silent=silent)
-        for missing_digit in missing_from_zone:
-            possible_cells = []
-
-            for cell in empty_cells:
-                i, j = cell
-                if missing_digit in get_possibles_for_cell(sudoku, i, j):
-                    possible_cells.append(cell)
-            if len(possible_cells) == 1:
-                i, j = possible_cells[0]
-                # цифра может быть только в 1 месте
-                sudoku.puzzle[i][j] = missing_digit
-                empty_cells = [cell for cell in empty_cells if cell != possible_cells[0]]
-                candidates[i][j] = "{:^{}}".format(" >{}< ".format(missing_digit), length)
-                candidates_changed = True
-            if not silent:
-                logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
-        for cell in empty_cells:
-            i, j = cell
-            possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
-            if len(possible_values) == 1:
-                # цифра может быть только в 1 месте
-                value = list(possible_values)[0]
-                sudoku.puzzle[i][j] = value
-                empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
-                candidates[i][j] = "{:^{}}".format(" >{}< ".format(value), length)
-                candidates_changed = True
+        zone_description = "Row R{}".format(i_zone)
+        zone_cells = [(i_zone, i) for i in range(n_zones)]
+        find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
     if not silent:
         if candidates_changed:
             logging.info(str_puzzle(candidates))
@@ -390,21 +363,20 @@ def find_exclude_in_regions(sudoku, silent=False):
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
-            region_content = sudoku.get_region(region_i, region_j)
-            missing_from_region = get_missing(set(region_content), sudoku.acceptable_values)
-            if not missing_from_region:
+            zone_content = sudoku.get_region(region_i, region_j)
+            missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
+            if not missing_from_zone:
                 continue
             elif not silent:
-                logging.debug("region {} {}: missing: {}".format(region_i, region_j, missing_from_region))
+                logging.debug("region {} {}: missing: {}".format(region_i, region_j, missing_from_zone))
             # find N cells with N variants where variants are equal between cells
             empty_cells = sudoku.get_empty_cells_in_region_by_region_ij(region_i, region_j)
-            empty_cells, missing_from_region = \
+            empty_cells, missing_from_zone = \
                 exclude_cells_with_same_possible_values(sudoku,
                                                         empty_cells,
-                                                        missing_from_region,
+                                                        missing_from_zone,
                                                         silent=silent)
-
-            for missing_digit in missing_from_region:
+            for missing_digit in missing_from_zone:
                 possible_cells = []
 
                 for cell in empty_cells:
@@ -422,7 +394,7 @@ def find_exclude_in_regions(sudoku, silent=False):
                     logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
             for cell in empty_cells:
                 i, j = cell
-                possible_values = missing_from_region & get_possibles_for_cell(sudoku, i, j)
+                possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
                 if len(possible_values) == 1:
                     # цифра может быть только в 1 месте
                     value = list(possible_values)[0]
