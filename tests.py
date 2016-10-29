@@ -49,6 +49,12 @@ class MyTestCase(unittest.TestCase):
         em = list(easy.get_empty_cells_in_region(0, 0, 3, 3))
         self.assertEqual(len(em), 6)
 
+    def test_get_region_cells(self):
+        cells = sudoku.get_region_cells(0, 0)
+        self.assertIn((0, 0), cells)
+        self.assertIn((2, 2), cells)
+        self.assertNotIn((2, 3), cells)
+
 
 class StrategyTestCase(unittest.TestCase):
     def test_locked_candidates(self):
