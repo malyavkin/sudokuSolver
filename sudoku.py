@@ -2,15 +2,15 @@ import logging
 import htmltable
 from copy import deepcopy
 import sample
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(message)s')
 
 
 def str_puzzle(puzzle):
 
-    cell_horizontal_delim = " "
+    cell_horizontal_delim = "·"
     cell_intersection_delim = "·"
-    cell_vertical_delim = " "
+    cell_vertical_delim = "·"
     region_horizontal_delim = " | "
     region_vertical_delim = "-"
 
@@ -212,7 +212,7 @@ def find_single_missing(sudoku, silent=False):
             raise ZeroCandidatesException(cell)
         elif len(acceptable_here) == 1:
             (value, *rest) = acceptable_here
-            candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
+            candidates[i][j] = "{:^{}}".format("> {} <".format(value), length)
             candidates_changed = True
             sudoku.puzzle[i][j] = value
         elif len(acceptable_here) == 2:
@@ -273,8 +273,12 @@ def find_exclude_in_columns(sudoku, silent=False):
             logging.debug("column {}".format(j_column))
         column_content = sudoku.get_column(j_column)
         missing_from_column = get_missing(set(column_content), sudoku.acceptable_values)
+        if not missing_from_column:
+            if not silent:
+                logging.debug("<none missing>")
+                continue
         if not silent:
-            logging.debug("\tmissing: {}".format(missing_from_column))
+            logging.debug("missing: {}".format(missing_from_column))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_column(j_column)
         empty_cells, missing_from_column = \
@@ -332,8 +336,12 @@ def find_exclude_in_rows(sudoku, silent=False):
             logging.debug("row {}".format(i_row))
         row_content = sudoku.get_row(i_row)
         missing_from_row = get_missing(set(row_content), sudoku.acceptable_values)
+        if not missing_from_row:
+            if not silent:
+                logging.debug("<none missing>")
+                continue
         if not silent:
-            logging.debug("\tmissing: {}".format(missing_from_row))
+            logging.debug("missing: {}".format(missing_from_row))
         # find N cells with N variants where variants are equal between cells
         empty_cells = sudoku.get_empty_cells_in_row(i_row)
         empty_cells, missing_from_row = \
@@ -392,8 +400,12 @@ def find_exclude_in_regions(sudoku, silent=False):
                 logging.debug("region {} {}".format(region_i, region_j))
             region_content = sudoku.get_region(region_i, region_j)
             missing_from_region = get_missing(set(region_content), sudoku.acceptable_values)
+            if not missing_from_region:
+                if not silent:
+                    logging.debug("<none missing>")
+                    continue
             if not silent:
-                logging.debug("\tmissing: {}".format(missing_from_region))
+                logging.debug("missing: {}".format(missing_from_region))
             # find N cells with N variants where variants are equal between cells
             empty_cells = sudoku.get_empty_cells_in_region_by_region_ij(region_i, region_j)
             empty_cells, missing_from_region = \
@@ -428,12 +440,6 @@ def find_exclude_in_regions(sudoku, silent=False):
                     empty_cells = [e_cell for e_cell in empty_cells if e_cell != cell]
                     candidates[i][j] = "{:^{}}".format("->{}<-".format(value), length)
                     candidates_changed = True
-
-                # todo: так же иметь массив догадок -- где записаны пары мест, где могут стоять только 2 цифры :
-                #   6 | [4, 3] |
-                #     |        |
-                #     | [4, 3] | 2
-                # в таком случае в данном регионе остается только 5 мест, занятых цифрами 1, 5, 7, 8, 9
     if not silent:
         if candidates_changed:
             logging.info(str_puzzle(candidates))
@@ -476,7 +482,7 @@ def nishio(sudoku, silent=False):
 
 
 if __name__ == "__main__":
-    hard = SudokuPuzzle(sample.hard["puzzle"], sample.acceptable_values)
+    hard = SudokuPuzzle(sample.medium["puzzle"], sample.acceptable_values)
     logging.warning("Puzzle:\n{}".format(hard))
     solved = hard.solve()
     logging.warning("="*80)

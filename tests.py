@@ -66,7 +66,7 @@ class StrategyTestCase(unittest.TestCase):
               ["X", "X", "X",    "X", "X", "X",    "X", "X", "X"],
         ]
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
-        solved = su.solve()
+        solved = su.solve(enable_desperate=False)
         self.assertEqual(solved.puzzle[0][1], "5")
 
     def test_sole_candidate(self):
@@ -84,7 +84,7 @@ class StrategyTestCase(unittest.TestCase):
             ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
         ]
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
-        solved = su.solve()
+        solved = su.solve(enable_desperate=False)
         self.assertEqual(solved.puzzle[5][5], "5")
 
     def test_unique_candidate(self):
@@ -102,7 +102,7 @@ class StrategyTestCase(unittest.TestCase):
             ["X", "X", "X", "X", "X", "4", "X", "X", "X"],
         ]
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
-        solved = su.solve()
+        solved = su.solve(enable_desperate=False)
         self.assertEqual(solved.puzzle[7][0], "4")
 
     def test_block_row_interaction(self):
@@ -120,7 +120,7 @@ class StrategyTestCase(unittest.TestCase):
             ["X", "X", "5", "X", "X", "X", "X", "X", "X"],
         ]
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
-        solved = su.solve()
+        solved = su.solve(enable_desperate=False)
         self.assertEqual(solved.puzzle[4][3], "5")
 
     def test_block_block_interaction(self):
@@ -138,7 +138,7 @@ class StrategyTestCase(unittest.TestCase):
             ["X", "X", "X", "X", "X", "X", "X", "X", "X"],
         ]
         su = sudoku.SudokuPuzzle(puzzle, sample.acceptable_values)
-        solved = su.solve()
+        solved = su.solve(enable_desperate=False)
         self.assertEqual(solved.puzzle[4][7], "8")
 
 
