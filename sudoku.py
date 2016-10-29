@@ -266,25 +266,25 @@ def find_exclude_in_columns(sudoku, silent=False):
     :param silent: don't log any messages
     :return:
     """
-    n_columns = 9
+    n_zones = 9
     length = 5
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
-    for j_column in range(n_columns):
-        column_content = sudoku.get_column(j_column)
-        missing_from_column = get_missing(set(column_content), sudoku.acceptable_values)
-        if not missing_from_column:
+    for i_zone in range(n_zones):
+        zone_content = sudoku.get_column(i_zone)
+        missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
+        if not missing_from_zone:
             continue
         elif not silent:
-            logging.debug("column {}: missing: {}".format(j_column, missing_from_column))
+            logging.debug("column {}: missing: {}".format(i_zone, missing_from_zone))
         # find N cells with N variants where variants are equal between cells
-        empty_cells = sudoku.get_empty_cells_in_column(j_column)
-        empty_cells, missing_from_column = \
+        empty_cells = sudoku.get_empty_cells_in_column(i_zone)
+        empty_cells, missing_from_zone = \
             exclude_cells_with_same_possible_values(sudoku,
                                                     empty_cells,
-                                                    missing_from_column,
+                                                    missing_from_zone,
                                                     silent=silent)
-        for missing_digit in missing_from_column:
+        for missing_digit in missing_from_zone:
             possible_cells = []
 
             for cell in empty_cells:
@@ -302,7 +302,7 @@ def find_exclude_in_columns(sudoku, silent=False):
                 logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
         for cell in empty_cells:
             i, j = cell
-            possible_values = missing_from_column & get_possibles_for_cell(sudoku, i, j)
+            possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
             if len(possible_values) == 1:
                 # цифра может быть только в 1 месте
                 value = list(possible_values)[0]
@@ -321,29 +321,29 @@ def find_exclude_in_rows(sudoku, silent=False):
     """
     in each row, for each missing digits, find cells where that digit can be. If there's only one
     possible cell -- fill it
+    :param sudoku: puzzle
     :param silent: don't log any messages
-    :param sudoku:
     :return:
     """
-    n_rows = 9
+    n_zones = 9
     length = 5
     candidates_changed = False
     candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
-    for i_row in range(n_rows):
-        row_content = sudoku.get_row(i_row)
-        missing_from_row = get_missing(set(row_content), sudoku.acceptable_values)
-        if not missing_from_row:
+    for i_zone in range(n_zones):
+        zone_content = sudoku.get_row(i_zone)
+        missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
+        if not missing_from_zone:
             continue
         elif not silent:
-            logging.debug("row {}: missing: {}".format(i_row, missing_from_row))
+            logging.debug("row {}: missing: {}".format(i_zone, missing_from_zone))
         # find N cells with N variants where variants are equal between cells
-        empty_cells = sudoku.get_empty_cells_in_row(i_row)
-        empty_cells, missing_from_row = \
+        empty_cells = sudoku.get_empty_cells_in_row(i_zone)
+        empty_cells, missing_from_zone = \
             exclude_cells_with_same_possible_values(sudoku,
                                                     empty_cells,
-                                                    missing_from_row,
+                                                    missing_from_zone,
                                                     silent=silent)
-        for missing_digit in missing_from_row:
+        for missing_digit in missing_from_zone:
             possible_cells = []
 
             for cell in empty_cells:
@@ -361,7 +361,7 @@ def find_exclude_in_rows(sudoku, silent=False):
                 logging.debug("\t[{}] can be in: {}".format(missing_digit, possible_cells))
         for cell in empty_cells:
             i, j = cell
-            possible_values = missing_from_row & get_possibles_for_cell(sudoku, i, j)
+            possible_values = missing_from_zone & get_possibles_for_cell(sudoku, i, j)
             if len(possible_values) == 1:
                 # цифра может быть только в 1 месте
                 value = list(possible_values)[0]
