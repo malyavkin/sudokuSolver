@@ -12,24 +12,25 @@ def str_puzzle(puzzle):
     cell_intersection_delim = "·"
     cell_vertical_delim = "·"
     region_horizontal_delim = " | "
+    region_intersection_delim = " + "
     region_vertical_delim = "-"
 
     strs = ["Graphical representation:"]
-    fmt = region_horizontal_delim.join(["{}"]*3)
+    fmt_row = region_horizontal_delim.join(["{}"]*3)
+    fmt_interband_row = region_intersection_delim.join(["{}"]*3)
     for i in range(len(puzzle)):
         row = [x if x != "X" else " " for x in puzzle[i]]
-        subrow_fmt = cell_horizontal_delim.join(["{:^5}"] * 3)
-        strs.append(fmt.format(subrow_fmt.format(*row[0:3]),
-                               subrow_fmt.format(*row[3:6]),
-                               subrow_fmt.format(*row[6:9])))
+        sub_row_fmt = cell_horizontal_delim.join(["{:^5}"] * 3)
+        strs.append(fmt_row.format(sub_row_fmt.format(*row[0:3]),
+                                   sub_row_fmt.format(*row[3:6]),
+                                   sub_row_fmt.format(*row[6:9])))
         if i != len(puzzle)-1:
             if i % 3 == 2:
-                pass
                 sub = region_vertical_delim * 17
-                strs.append(fmt.format(sub, sub, sub))
+                strs.append(fmt_interband_row.format(sub, sub, sub))
             else:
                 sub = cell_intersection_delim.join([cell_vertical_delim*5]*3)
-                strs.append(fmt.format(sub, sub, sub))
+                strs.append(fmt_row.format(sub, sub, sub))
     return "\n".join(strs)
 
 
@@ -127,7 +128,7 @@ class SudokuPuzzle:
             new_puzzle = deepcopy(c_puzzle)
             if not silent:
                 logging.info("Running strategy: find_single_missing")
-            find_single_missing(new_puzzle, silent)
+            find_single_missing(new_puzzle, silent, draw_probable_values=False)
             if not silent:
                 logging.info("Running strategy: find_exclude_in_regions")
             find_exclude_in_regions(new_puzzle, silent)
@@ -198,7 +199,7 @@ def get_possibles_for_cell(sudoku, i, j):
 ########################################################################################################################
 
 
-def find_single_missing(sudoku, silent=False):
+def find_single_missing(sudoku, silent=False, draw_probable_values=True):
     """
     Finds all cells with only one variant
     """
@@ -218,7 +219,8 @@ def find_single_missing(sudoku, silent=False):
         elif len(acceptable_here) == 2:
             # pass
             l_acc = list(acceptable_here)
-            candidates[i][j] = "{:^{}}".format("[{},{}]".format(*l_acc), length)
+            if draw_probable_values:
+                candidates[i][j] = "{:^{}}".format("[{},{}]".format(*l_acc), length)
             candidates_changed = True
     if not silent:
         if candidates_changed:
