@@ -111,14 +111,8 @@ class SudokuPuzzle:
                 logging.info("Running strategy: find_single_missing")
             find_single_missing(new_puzzle, silent, draw_probable_values=False)
             if not silent:
-                logging.info("Running strategy: find_exclude_in_regions")
-            find_exclude_in_regions(new_puzzle, silent)
-            if not silent:
-                logging.info("Running strategy: find_exclude_in_columns")
-            find_exclude_in_columns(new_puzzle, silent)
-            if not silent:
-                logging.info("Running strategy: find_exclude_in_rows")
-            find_exclude_in_rows(new_puzzle, silent)
+                logging.info("Running strategy: run_find_cell_candidates")
+            run_find_cell_candidates(new_puzzle, silent)
             if c_puzzle == new_puzzle:
                 if enable_desperate:
                     if not silent:
@@ -291,14 +285,7 @@ def find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False):
             candidates_changed = True
 
 
-def find_exclude_in_columns(sudoku, silent=False):
-    """
-    in each column, for each missing digits, find cells where that digit can be. If there's only one
-    possible cell -- fill it
-    :param sudoku: puzzle
-    :param silent: don't log any messages
-    :return:
-    """
+def run_find_cell_candidates(sudoku, silent=False):
     length = 5
     candidates_changed = False
     candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
@@ -306,47 +293,11 @@ def find_exclude_in_columns(sudoku, silent=False):
         zone_description = "Column C{}".format(i_zone)
         zone_cells = [(i, i_zone) for i in range(sudoku.size)]
         find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
-    if not silent:
-        if candidates_changed:
-            logging.info(str_puzzle(candidates))
-        else:
-            logging.info("<no changes>")
-
-
-def find_exclude_in_rows(sudoku, silent=False):
-    """
-    in each row, for each missing digits, find cells where that digit can be. If there's only one
-    possible cell -- fill it
-    :param sudoku: puzzle
-    :param silent: don't log any messages
-    :return:
-    """
-    length = 5
-    candidates_changed = False
-    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
     for i_zone in range(sudoku.size):
         zone_description = "Row R{}".format(i_zone)
         zone_cells = [(i_zone, i) for i in range(sudoku.size)]
         find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
-    if not silent:
-        if candidates_changed:
-            logging.info(str_puzzle(candidates))
-        else:
-            logging.info("<no changes>")
-
-
-def find_exclude_in_regions(sudoku, silent=False):
-    """
-    in each region, for each missing digits, find cells where that digit can be. If there's only one
-    possible cell -- fill it
-    :param silent: don't log any messages
-    :param sudoku:
-    :return:
-    """
     n_regions = 3
-    length = 5
-    candidates_changed = False
-    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
             zone_description = "Region {} {}".format(region_i, region_j)
