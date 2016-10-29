@@ -43,6 +43,7 @@ class SudokuPuzzle:
     def __init__(self, puzzle, acceptable_values):
         self.puzzle = puzzle
         self.acceptable_values = acceptable_values
+        self.size = len(puzzle)
 
     def get_row(self, row):
         """
@@ -77,26 +78,6 @@ class SudokuPuzzle:
             for j_cell in range(len(self.puzzle[i_row])):
                 if self.puzzle[i_row][j_cell] not in self.acceptable_values:
                     yield i_row, j_cell
-
-    def get_empty_cells_in_region_by_region_ij(self, region_i, region_j):
-        region_indexes = [get_region_indexes(i, 3) for i in range(3)]
-        return self.get_empty_cells_in_region(region_indexes[region_i][0],
-                                              region_indexes[region_j][0],
-                                              region_indexes[region_i][1],
-                                              region_indexes[region_j][1])
-
-    def get_empty_cells_in_row(self, row_i):
-        ijs = self.get_empty_cells()
-        return filter(lambda ij: ij[0] == row_i, ijs)
-
-    def get_empty_cells_in_column(self, column_j):
-        ijs = self.get_empty_cells()
-        return filter(lambda ij: ij[1] == column_j, ijs)
-
-    def get_empty_cells_in_region(self, i_min, j_min, i_max, j_max):
-        ijs = self.get_empty_cells()
-        return filter(lambda ij: i_min <= ij[0] < i_max and j_min <= ij[1] < j_max,
-                      ijs)
 
     def __str__(self):
         return str_puzzle(self.puzzle)
@@ -189,9 +170,9 @@ def get_missing(lst: set, acceptable_values: set) -> set:
     return acceptable_values.difference(lst)
 
 
-def generate_scratch(puzzle, length, acceptable_values):
-    return [["{:^{}}".format(puzzle[i][j], length) if puzzle[i][j] in acceptable_values else "     "
-             for j in range(9)] for i in range(9)]
+def generate_scratch(sudoku, length, acceptable_values):
+    return [["{:^{}}".format(sudoku.puzzle[i][j], length) if sudoku.puzzle[i][j] in acceptable_values else "     "
+             for j in range(sudoku.size)] for i in range(sudoku.size)]
 
 
 def get_possibles_for_cell(sudoku, i, j):
@@ -212,7 +193,7 @@ def find_single_missing(sudoku, silent=False, draw_probable_values=True):
     """
     length = 5
     candidates_changed = False
-    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
+    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
     for cell in sudoku.get_empty_cells():
         i, j = cell
         acceptable_here = get_possibles_for_cell(sudoku, i, j)
@@ -269,7 +250,7 @@ def find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False):
     length = 5
     candidates_changed = False
     zone_content = [sudoku.puzzle[cell[0]][cell[1]] for cell in zone_cells ]
-    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
+    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
     missing_from_zone = get_missing(set(zone_content), sudoku.acceptable_values)
     if not missing_from_zone:
         return
@@ -318,13 +299,12 @@ def find_exclude_in_columns(sudoku, silent=False):
     :param silent: don't log any messages
     :return:
     """
-    n_zones = 9
     length = 5
     candidates_changed = False
-    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
-    for i_zone in range(n_zones):
+    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
+    for i_zone in range(sudoku.size):
         zone_description = "Column C{}".format(i_zone)
-        zone_cells = [(i, i_zone) for i in range(n_zones)]
+        zone_cells = [(i, i_zone) for i in range(sudoku.size)]
         find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
     if not silent:
         if candidates_changed:
@@ -341,13 +321,12 @@ def find_exclude_in_rows(sudoku, silent=False):
     :param silent: don't log any messages
     :return:
     """
-    n_zones = 9
     length = 5
     candidates_changed = False
-    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
-    for i_zone in range(n_zones):
+    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
+    for i_zone in range(sudoku.size):
         zone_description = "Row R{}".format(i_zone)
-        zone_cells = [(i_zone, i) for i in range(n_zones)]
+        zone_cells = [(i_zone, i) for i in range(sudoku.size)]
         find_exclude_in_zone(sudoku, zone_cells, zone_description, silent=False)
     if not silent:
         if candidates_changed:
@@ -367,7 +346,7 @@ def find_exclude_in_regions(sudoku, silent=False):
     n_regions = 3
     length = 5
     candidates_changed = False
-    candidates = generate_scratch(sudoku.puzzle, length, sudoku.acceptable_values)
+    candidates = generate_scratch(sudoku, length, sudoku.acceptable_values)
     for region_i in range(n_regions):
         for region_j in range(n_regions):
             zone_description = "Region {} {}".format(region_i, region_j)

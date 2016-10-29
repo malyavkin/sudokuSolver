@@ -44,11 +44,6 @@ class MyTestCase(unittest.TestCase):
         for i, j in easy.get_empty_cells():
             self.assertEqual(sample.easy["puzzle"][i][j], "X")
 
-    def test_get_empty_cells_in_region(self):
-        easy = sudoku.SudokuPuzzle(sample.easy["puzzle"], sample.acceptable_values)
-        em = list(easy.get_empty_cells_in_region(0, 0, 3, 3))
-        self.assertEqual(len(em), 6)
-
     def test_get_region_cells(self):
         cells = sudoku.get_region_cells(0, 0)
         self.assertIn((0, 0), cells)
